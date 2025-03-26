@@ -3,15 +3,13 @@ stages:
 
 provision_infra:
   stage: provision
-  # Imagen con Ansible preinstalado para simplificar
   image: williamyeh/ansible:alpine3
   script:
+    # Guarda el contenido del JSON de la cuenta de servicio en un archivo temporal
+    - echo "$GCLOUD_SERVICE_ACCOUNT_KEY" > /tmp/gcloud_service_account.json
+    # Exporta la variable para que los módulos de GCP puedan autenticarse
+    - export GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcloud_service_account.json
+    # Ejecuta el playbook de Ansible, el cual usará las variables definidas en el entorno
     - ansible-playbook -i "localhost," -c local playbook.yml
-  # Variables de entorno para GCP (puedes usar GitLab CI/CD Variables)
-  # Asegúrate de proporcionar credenciales de GCP adecuadas (service account JSON)
-  # y exportar la variable GCLOUD_SERVICE_ACCOUNT_KEY, etc.
-  variables:
-    GCP_PROJECT_ID: "TU_PROYECTO_GCP"
-    GCP_ZONE: "us-central1-a"
   only:
-    - main  # o la rama que desees
+    - main

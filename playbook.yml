@@ -15,6 +15,8 @@
         machine_type: "{{ machine_type }}"
         zone: "{{ zone }}"
         project: "{{ project_id }}"
+        auth_kind: serviceaccount
+        service_account_file: "/tmp/gcloud_service_account.json"
         disks:
           - auto_delete: true
             boot: true
@@ -32,13 +34,12 @@
         seconds: 60
 
 - name: Configurar Jenkins en la VM (Linux)
-  # Aquí asumimos que tienes un inventario dinámico o que conoces la IP de la VM
-  # para 'jenkins-vm'. Ajusta según tu configuración de Ansible.
+  # Aquí asumimos que tienes un inventario dinámico o que conoces la IP de la VM para 'jenkins-vm'
   hosts: jenkins-vm
   become: yes
   gather_facts: yes
   vars:
-    ansible_ssh_user: "tu_usuario_linux"  # Usuario en la VM
+    ansible_ssh_user: "tu_usuario_linux"  # Usuario en la VM; reemplázalo por el que uses
   tasks:
     - name: Actualizar repositorios APT
       apt:
@@ -76,13 +77,13 @@
     - name: Descargar main.py desde repositorio público de GitHub
       shell: |
         cd /home/{{ ansible_ssh_user }}/myapp
-        wget https://raw.githubusercontent.com/TU_USUARIO/TU_REPOSITORIO/main/main.py -O main.py
+        wget https://raw.githubusercontent.com/alfonso-cloud-eng/python-automation-gitlab-jenkins-ansible/main/main.py -O main.py
       args:
         executable: /bin/bash
 
     - name: Descargar Jenkinsfile desde repositorio público de GitHub
       shell: |
         cd /home/{{ ansible_ssh_user }}/myapp
-        wget https://raw.githubusercontent.com/TU_USUARIO/TU_REPOSITORIO/main/Jenkinsfile -O Jenkinsfile
+        wget https://raw.githubusercontent.com/alfonso-cloud-eng/python-automation-gitlab-jenkins-ansible/main/Jenkinsfile -O Jenkinsfile
       args:
         executable: /bin/bash
