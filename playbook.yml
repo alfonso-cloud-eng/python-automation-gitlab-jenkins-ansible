@@ -1,0 +1,88 @@
+- name: Crear VM en GCP e instalar Jenkins
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  vars:
+    project_id: "{{ lookup('env','GCP_PROJECT_ID') }}"
+    zone: "{{ lookup('env','GCP_ZONE') }}"
+    instance_name: "jenkins-vm"
+    machine_type: "e2-micro"  # o "f1-micro" si prefieres
+    image_family: "debian-11"  # Imagen Linux en GCP
+  tasks:
+    - name: Crear instancia en GCP (Linux)
+      gcp_compute_instance:
+        name: "{{ instance_name }}"
+        machine_type: "{{ machine_type }}"
+        zone: "{{ zone }}"
+        project: "{{ project_id }}"
+        disks:
+          - auto_delete: true
+            boot: true
+            initialize_params:
+              source_image_family: "{{ image_family }}"
+        network_interfaces:
+          - network: default
+            access_configs:
+              - name: External NAT
+                type: ONE_TO_ONE_NAT
+      register: vm_info
+
+    - name: Esperar a que la instancia esté en estado RUNNING
+      pause:
+        seconds: 60
+
+- name: Configurar Jenkins en la VM (Linux)
+  # Aquí asumimos que tienes un inventario dinámico o que conoces la IP de la VM
+  # para 'jenkins-vm'. Ajusta según tu configuración de Ansible.
+  hosts: jenkins-vm
+  become: yes
+  gather_facts: yes
+  vars:
+    ansible_ssh_user: "tu_usuario_linux"  # Usuario en la VM
+  tasks:
+    - name: Actualizar repositorios APT
+      apt:
+        update_cache: yes
+
+    - name: Instalar dependencias necesarias (Java para Jenkins, wget, etc.)
+      apt:
+        name:
+          - openjdk-11-jdk
+          - wget
+          - python3
+          - python3-pip
+        state: present
+
+    - name: Instalar Jenkins (usando repositorio oficial)
+      shell: |
+        curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io.key | sudo apt-key add -
+        sudo sh -c 'echo deb https://pkg.jenkins.io/debian-stable binary/ > /etc/apt/sources.list.d/jenkins.list'
+        sudo apt-get update
+        sudo apt-get install -y jenkins
+      args:
+        executable: /bin/bash
+
+    - name: Iniciar Jenkins y habilitar arranque automático
+      service:
+        name: jenkins
+        state: started
+        enabled: yes
+
+    - name: Crear directorio para el proyecto
+      file:
+        path: /home/{{ ansible_ssh_user }}/myapp
+        state: directory
+
+    - name: Descargar main.py desde repositorio público de GitHub
+      shell: |
+        cd /home/{{ ansible_ssh_user }}/myapp
+        wget https://raw.githubusercontent.com/TU_USUARIO/TU_REPOSITORIO/main/main.py -O main.py
+      args:
+        executable: /bin/bash
+
+    - name: Descargar Jenkinsfile desde repositorio público de GitHub
+      shell: |
+        cd /home/{{ ansible_ssh_user }}/myapp
+        wget https://raw.githubusercontent.com/TU_USUARIO/TU_REPOSITORIO/main/Jenkinsfile -O Jenkinsfile
+      args:
+        executable: /bin/bash
