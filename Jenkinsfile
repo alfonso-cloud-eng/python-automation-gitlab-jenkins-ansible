@@ -19,11 +19,11 @@ pipeline {
                 '''
             }
         }
-        stage('Run main.py') {
+        stage('Run stocks-slack.py') {
             steps {
                 sh '''
                   cd /home/tu_usuario_linux/myapp
-                  python3 main.py
+                  python3 stocks-slack.py
                 '''
             }
         }

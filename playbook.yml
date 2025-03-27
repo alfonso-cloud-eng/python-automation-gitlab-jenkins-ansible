@@ -35,7 +35,7 @@
 
     - name: Esperar a que la instancia esté en estado RUNNING
       pause:
-        seconds: 1
+        seconds: 60
 
     - name: Obtener IP de la instancia usando gcloud CLI
       shell: |
@@ -112,11 +112,20 @@
       file:
         path: /opt/myapp
         state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Verificar que /opt/myapp fue creado
+      shell: "ls -la /opt"
+      register: opt_listing
+    - debug:
+        var: opt_listing.stdout
 
     - name: Descargar main.py desde repositorio público de GitHub
       shell: |
         cd /opt/myapp
-        wget https://raw.githubusercontent.com/alfonso-cloud-eng/python-automation-gitlab-jenkins-ansible/main/main.py -O main.py
+        wget https://raw.githubusercontent.com/alfonso-cloud-eng/python-automation-gitlab-jenkins-ansible/main/stocks-slack.py -O stocks-slack.py
       args:
         executable: /bin/sh
 
