@@ -43,6 +43,10 @@
         gcloud compute instances describe {{ instance_name }} --zone={{ zone }} --project={{ project_id }} --format="get(networkInterfaces[0].accessConfigs[0].natIP)"
       register: instance_ip
 
+    - name: Imprimir la IP de la instancia
+      debug:
+        msg: "La IP de la instancia es: {{ instance_ip.stdout }}"
+
     - name: Agregar la instancia creada al inventario dinámico
       add_host:
         name: jenkins-vm
@@ -69,47 +73,40 @@
     - debug:
         var: env_debug.stdout
 
-- name: Configurar Jenkins en la VM (Linux)
+- name: Configurar Jenkins en la VM (Alpine Linux)
   hosts: jenkins-vm
   become: yes
   gather_facts: yes
   vars:
-    ansible_ssh_user: "alfonso_cloud_eng"  # Replace with your actual SSH username on the VM
-    job_name: "my_jenkins_job"             # Customize the Jenkins job name as needed
+    ansible_ssh_user: "alfonso_cloud_eng"   # Replace with your actual SSH username on the VM
+    job_name: "my_jenkins_job"              # Customize the Jenkins job name as needed
   tasks:
-    - name: Verificar ubicación de apt-get
-      shell: "env PATH=/usr/bin:$PATH command -v apt-get"
-      register: apt_get_path
-
-    - debug:
-        msg: "apt-get is located at: {{ apt_get_path.stdout }}"
-
-    - name: Actualizar repositorios APT e instalar python3-apt manually
-      shell: "env PATH=/usr/bin:$PATH apt-get update && env PATH=/usr/bin:$PATH apt-get install -y python3-apt"
-
-    - name: Instalar dependencias necesarias (Java, wget, python3, python3-pip)
-      apt:
-        name:
-          - openjdk-11-jdk
-          - wget
-          - python3
-          - python3-pip
-        state: present
-
-    - name: Instalar Jenkins (using official repository)
+    - name: Instalar dependencias en Alpine (OpenJDK, Python3, pip, wget, etc.)
       shell: |
-        curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io.key | sudo apt-key add -
-        sudo sh -c 'echo deb https://pkg.jenkins.io/debian-stable binary/ > /etc/apt/sources.list.d/jenkins.list'
-        sudo apt-get update
-        sudo apt-get install -y jenkins
+        apk update
+        apk add openjdk11 python3 py3-pip wget bash
       args:
-        executable: /bin/bash
+        executable: /bin/sh
 
-    - name: Iniciar Jenkins y habilitar arranque automático
-      service:
-        name: jenkins
-        state: started
-        enabled: yes
+    - name: Crear directorio para Jenkins
+      file:
+        path: /opt/jenkins
+        state: directory
+
+    - name: Descargar y ejecutar Jenkins WAR en segundo plano
+      shell: |
+        cd /opt/jenkins
+        # Descarga la versión estable del WAR (ajusta la versión si lo deseas)
+        wget https://get.jenkins.io/war-stable/2.387.3/jenkins.war -O jenkins.war
+        # Ejecuta Jenkins en el puerto 8080 de forma desatendida
+        nohup java -jar jenkins.war --httpPort=8080 &
+      args:
+        executable: /bin/sh
+
+    # (Opcional) Esperar unos segundos para dar tiempo a Jenkins a iniciar
+    - name: Esperar 20 segundos para que Jenkins inicie
+      pause:
+        seconds: 20
 
     - name: Crear directorio para el proyecto
       file:
@@ -121,35 +118,16 @@
         cd /home/{{ ansible_ssh_user }}/myapp
         wget https://raw.githubusercontent.com/alfonso-cloud-eng/python-automation-gitlab-jenkins-ansible/main/main.py -O main.py
       args:
-        executable: /bin/bash
+        executable: /bin/sh
 
     - name: Descargar Jenkinsfile desde repositorio público de GitHub
       shell: |
         cd /home/{{ ansible_ssh_user }}/myapp
         wget https://raw.githubusercontent.com/alfonso-cloud-eng/python-automation-gitlab-jenkins-ansible/main/Jenkinsfile -O Jenkinsfile
       args:
-        executable: /bin/bash
+        executable: /bin/sh
 
     # --- Steps to create the Jenkins job automatically ---
-    - name: Copiar plantilla para configuración del job en Jenkins
-      copy:
-        dest: /tmp/job_config.xml.j2
-        content: |
-          <?xml version='1.1' encoding='UTF-8'?>
-          <flow-definition plugin="workflow-job@2.40">
-            <actions/>
-            <description>Job creado automáticamente</description>
-            <keepDependencies>false</keepDependencies>
-            <properties/>
-            <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@2.92">
-              <!-- Insert the Jenkinsfile content, escaped for XML -->
-              <script>{{ jenkinsfile_content | xml_escape }}</script>
-              <sandbox>true</sandbox>
-            </definition>
-            <triggers/>
-            <disabled>false</disabled>
-          </flow-definition>
-    
     - name: Leer contenido del Jenkinsfile
       slurp:
         src: /home/{{ ansible_ssh_user }}/myapp/Jenkinsfile
@@ -161,19 +139,34 @@
 
     - name: Renderizar configuración del job en Jenkins
       template:
-        src: /tmp/job_config.xml.j2
         dest: /tmp/job_config.xml
-      vars:
-        jenkinsfile_content: "{{ jenkinsfile_content }}"
+        content: |
+          <?xml version='1.1' encoding='UTF-8'?>
+          <flow-definition plugin="workflow-job@2.40">
+            <actions/>
+            <description>Job creado automáticamente</description>
+            <keepDependencies>false</keepDependencies>
+            <properties/>
+            <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@2.92">
+              <!-- Manually escape <, >, & -->
+              <script>{{ jenkinsfile_content
+                | replace('<', '&lt;')
+                | replace('>', '&gt;')
+                | replace('&', '&amp;') }}</script>
+              <sandbox>true</sandbox>
+            </definition>
+            <triggers/>
+            <disabled>false</disabled>
+          </flow-definition>
 
     - name: Crear job pipeline en Jenkins
       shell: |
-        # Obtener crumb de Jenkins (asumiendo que CSRF está activado)
+        # Obtener crumb de Jenkins (asumiendo que CSRF está habilitado)
         CRUMB=$(curl -s 'http://localhost:8080/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,":",//crumb)')
-        # Llamar a la API de Jenkins para crear el job usando la configuración XML generada
+        # Crear el job en Jenkins usando la configuración XML generada
         curl -X POST "http://localhost:8080/createItem?name={{ job_name }}" \
           -H "$CRUMB" \
           -H "Content-Type: application/xml" \
           --data-binary @/tmp/job_config.xml
       args:
-        executable: /bin/bash
+        executable: /bin/sh
