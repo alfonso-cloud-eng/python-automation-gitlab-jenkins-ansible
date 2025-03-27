@@ -7,7 +7,7 @@ from slack_sdk.webhook import WebhookClient
 STOCKS = ["GOOGL", "AMZN", "META", "MSFT"]
 
 # Obtén la URL del webhook desde una variable de entorno
-SLACK_WEBHOOK_URL = os.environ.get("SLACK_WEBHOOK_URL")
+SLACK_WEBHOOK_URL = https://hooks.slack.com/services/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
 if not SLACK_WEBHOOK_URL:
     raise ValueError("Debes definir la variable de entorno SLACK_WEBHOOK_URL con la URL de tu webhook de Slack")
 
