@@ -110,27 +110,28 @@
 
     - name: Crear directorio para el proyecto
       file:
-        path: /home/{{ ansible_ssh_user }}/myapp
+        path: /opt/myapp
         state: directory
 
     - name: Descargar main.py desde repositorio público de GitHub
       shell: |
-        cd /home/{{ ansible_ssh_user }}/myapp
+        cd /opt/myapp
         wget https://raw.githubusercontent.com/alfonso-cloud-eng/python-automation-gitlab-jenkins-ansible/main/main.py -O main.py
       args:
         executable: /bin/sh
 
     - name: Descargar Jenkinsfile desde repositorio público de GitHub
       shell: |
-        cd /home/{{ ansible_ssh_user }}/myapp
+        cd /opt/myapp
         wget https://raw.githubusercontent.com/alfonso-cloud-eng/python-automation-gitlab-jenkins-ansible/main/Jenkinsfile -O Jenkinsfile
       args:
         executable: /bin/sh
 
+
     # --- Steps to create the Jenkins job automatically ---
     - name: Leer contenido del Jenkinsfile
       slurp:
-        src: /home/{{ ansible_ssh_user }}/myapp/Jenkinsfile
+        src: /opt/myapp/Jenkinsfile
       register: jenkinsfile_raw
 
     - name: Decodificar contenido del Jenkinsfile
@@ -138,9 +139,8 @@
         jenkinsfile_content: "{{ jenkinsfile_raw.content | b64decode }}"
 
     - name: Renderizar configuración del job en Jenkins
-      ansible.builtin.copy:
-        dest: /tmp/job_config.xml
-        content: |
+      set_fact:
+        jenkins_job_config: |
           <?xml version='1.1' encoding='UTF-8'?>
           <flow-definition plugin="workflow-job@2.40">
             <actions/>
@@ -148,7 +148,6 @@
             <keepDependencies>false</keepDependencies>
             <properties/>
             <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@2.92">
-              <!-- Manually escape <, >, & -->
               <script>{{ jenkinsfile_content
                 | replace('<', '&lt;')
                 | replace('>', '&gt;')
@@ -158,8 +157,11 @@
             <triggers/>
             <disabled>false</disabled>
           </flow-definition>
-        template: yes
 
+    - name: Escribir configuración del job en Jenkins a /tmp/job_config.xml
+      copy:
+        dest: /tmp/job_config.xml
+        content: "{{ jenkins_job_config }}"
 
     - name: Crear job pipeline en Jenkins
       shell: |
