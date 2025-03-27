@@ -6,8 +6,8 @@
     project_id: "{{ lookup('env','GCP_PROJECT_ID') }}"
     zone: "{{ lookup('env','GCP_ZONE') }}"
     instance_name: "jenkins-vm"
-    machine_type: "e2-micro"  # o "f1-micro" si prefieres
-    image_family: "debian-11"  # Imagen Linux en GCP
+    machine_type: "e2-micro" 
+    image_family: "debian-11" 
   tasks:
     - name: Crear instancia en GCP (Linux)
       gcp_compute_instance:
@@ -23,7 +23,8 @@
             initialize_params:
               source_image: "projects/debian-cloud/global/images/family/{{ image_family }}"
         network_interfaces:
-          - network: default
+          - network: 
+              name: "global/networks/default"
             access_configs:
               - name: External NAT
                 type: ONE_TO_ONE_NAT

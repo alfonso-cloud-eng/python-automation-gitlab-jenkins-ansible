@@ -5,6 +5,8 @@ provision_infra:
   stage: provision
   image: williamyeh/ansible:alpine3
   script:
+    # Install the required Google libraries
+    - pip install google-auth google-auth-httplib2 google-api-python-client
     # Guarda el contenido del JSON de la cuenta de servicio en un archivo temporal
     - echo "$GCLOUD_SERVICE_ACCOUNT_KEY_B64" | base64 -d > /tmp/gcloud_service_account.json
     # Exporta la variable para que los módulos de GCP puedan autenticarse
