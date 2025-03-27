@@ -56,7 +56,7 @@ def tarea_terminal():
 if __name__ == "__main__":
     scheduler = BlockingScheduler()
     # Programa la tarea para enviar mensaje a Slack cada minuto
-    scheduler.add_job(tarea_slack, 'interval', minutes=1)
+    scheduler.add_job(tarea_slack, 'interval', seconds=5)
     # Programa la tarea para imprimir en la terminal cada 5 segundos
     scheduler.add_job(tarea_terminal, 'interval', seconds=5)
     print("Scheduler iniciado. Presiona Ctrl+C para detener.")
