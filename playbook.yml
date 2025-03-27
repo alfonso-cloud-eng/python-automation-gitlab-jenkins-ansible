@@ -138,7 +138,7 @@
         jenkinsfile_content: "{{ jenkinsfile_raw.content | b64decode }}"
 
     - name: Renderizar configuración del job en Jenkins
-      template:
+      ansible.builtin.copy:
         dest: /tmp/job_config.xml
         content: |
           <?xml version='1.1' encoding='UTF-8'?>
@@ -158,6 +158,8 @@
             <triggers/>
             <disabled>false</disabled>
           </flow-definition>
+        template: yes
+
 
     - name: Crear job pipeline en Jenkins
       shell: |
