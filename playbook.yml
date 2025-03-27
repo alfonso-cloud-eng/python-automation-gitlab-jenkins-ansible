@@ -35,14 +35,12 @@
 
     - name: Esperar a que la instancia esté en estado RUNNING
       pause:
-        seconds: 60
+        seconds: 1
 
     - name: Obtener IP de la instancia usando gcloud CLI
       shell: |
-        gcloud compute instances describe {{ instance_name }} \
-          --zone={{ zone }} \
-          --project={{ project_id }} \
-          --format="get(networkInterfaces[0].accessConfigs[0].natIP)"
+        gcloud auth activate-service-account --key-file=/tmp/gcloud_service_account.json
+        gcloud compute instances describe {{ instance_name }} --zone={{ zone }} --project={{ project_id }} --format="get(networkInterfaces[0].accessConfigs[0].natIP)"
       register: instance_ip
 
     - name: Agregar la instancia creada al inventario dinámico
