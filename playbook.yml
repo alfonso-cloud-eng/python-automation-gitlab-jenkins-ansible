@@ -6,8 +6,8 @@
     project_id: "{{ lookup('env','GCP_PROJECT_ID') }}"
     zone: "{{ lookup('env','GCP_ZONE') }}"
     instance_name: "jenkins-vm"
-    machine_type: "e2-micro" 
-    image_family: "debian-11" 
+    machine_type: "e2-micro"  # or "f1-micro" if you prefer
+    image_family: "debian-11"  # Linux image in GCP
   tasks:
     - name: Crear instancia en GCP (Linux)
       gcp_compute_instance:
@@ -24,30 +24,36 @@
               source_image: "projects/debian-cloud/global/images/family/{{ image_family }}"
         metadata: {}
         network_interfaces:
-          - network: 
+          - network:
               name: "global/networks/default"
             access_configs:
-              - name: External NAT
-                type: ONE_TO_ONE_NAT
+              - name: "External NAT"
+                type: "ONE_TO_ONE_NAT"
       register: vm_info
 
     - name: Esperar a que la instancia esté en estado RUNNING
       pause:
         seconds: 60
 
+    - name: Agregar la instancia creada al inventario dinámico
+      add_host:
+        name: jenkins-vm
+        ansible_host: "{{ vm_info.resources[0].networkInterfaces[0].accessConfigs[0].natIP }}"
+        ansible_user: "alfonso_cloud_eng"
+
 - name: Configurar Jenkins en la VM (Linux)
   hosts: jenkins-vm
   become: yes
   gather_facts: yes
   vars:
-    ansible_ssh_user: "tu_usuario_linux"  # Reemplázalo por el usuario correcto en la VM
-    job_name: "pipeline_job"              # Nombre del job que se creará en Jenkins
+    ansible_ssh_user: "alfonso_cloud_eng"  # Replace with your actual SSH username on the VM
+    job_name: "my_jenkins_job"             # Customize the Jenkins job name as desired
   tasks:
     - name: Actualizar repositorios APT
       apt:
         update_cache: yes
 
-    - name: Instalar dependencias necesarias (Java para Jenkins, wget, etc.)
+    - name: Instalar dependencias necesarias (Java, wget, python3, python3-pip)
       apt:
         name:
           - openjdk-11-jdk
@@ -90,9 +96,7 @@
       args:
         executable: /bin/bash
 
-    # --- Inicio de los pasos para crear el job en Jenkins ---
-    # Copia una plantilla XML (en formato Jinja2) que servirá para configurar el job de Jenkins.
-    # Esta plantilla define un pipeline en Jenkins utilizando el contenido del Jenkinsfile.
+    # --- Begin steps to create the Jenkins job automatically ---
     - name: Copiar plantilla para configuración del job en Jenkins
       copy:
         dest: /tmp/job_config.xml.j2
@@ -111,21 +115,16 @@
             <triggers/>
             <disabled>false</disabled>
           </flow-definition>
-
-    # Lee el contenido del archivo Jenkinsfile que se descargó previamente en la VM.
-    # La tarea 'slurp' carga el contenido del archivo en formato base64.
+    
     - name: Leer contenido del Jenkinsfile
       slurp:
         src: /home/{{ ansible_ssh_user }}/myapp/Jenkinsfile
       register: jenkinsfile_raw
 
-    # Decodifica el contenido en base64 para obtener el texto plano del Jenkinsfile.
     - name: Decodificar contenido del Jenkinsfile
       set_fact:
         jenkinsfile_content: "{{ jenkinsfile_raw.content | b64decode }}"
 
-    # Utiliza la plantilla previamente copiada (/tmp/job_config.xml.j2) para generar un archivo XML final
-    # (/tmp/job_config.xml) que contiene la configuración del job, insertando el contenido del Jenkinsfile.
     - name: Renderizar configuración del job en Jenkins
       template:
         src: /tmp/job_config.xml.j2
@@ -133,13 +132,11 @@
       vars:
         jenkinsfile_content: "{{ jenkinsfile_content }}"
 
-    # Llama a la API de Jenkins para crear el job de pipeline usando la configuración XML generada.
-    # Se obtiene primero el 'crumb' de Jenkins para superar la protección CSRF (si está habilitada).
     - name: Crear job pipeline en Jenkins
       shell: |
         # Obtener crumb de Jenkins (suponiendo que CSRF está activado)
         CRUMB=$(curl -s 'http://localhost:8080/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,":",//crumb)')
-        # Llama a la API de Jenkins para crear el job, enviando la configuración XML
+        # Llama a la API de Jenkins para crear el job usando la configuración XML generada
         curl -X POST "http://localhost:8080/createItem?name={{ job_name }}" \
           -H "$CRUMB" \
           -H "Content-Type: application/xml" \
