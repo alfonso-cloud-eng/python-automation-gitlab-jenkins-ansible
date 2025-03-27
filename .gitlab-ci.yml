@@ -3,16 +3,13 @@ stages:
 
 provision_infra:
   stage: provision
-  image: williamyeh/ansible:alpine3
+  image: google/cloud-sdk:alpine
   script:
-    - ansible-galaxy collection install google.cloud
-    # Install the required Google libraries
-    - pip install google-auth google-auth-httplib2 google-api-python-client
-    # Guarda el contenido del JSON de la cuenta de servicio en un archivo temporal
+    - apk update && apk add --no-cache py3-pip bash
+    - pip3 install --break-system-packages ansible google-auth google-auth-httplib2 google-api-python-client
+    - ansible-galaxy collection install google.cloud --ignore-errors || true
     - echo "$GCLOUD_SERVICE_ACCOUNT_KEY_B64" | base64 -d > /tmp/gcloud_service_account.json
-    # Exporta la variable para que los módulos de GCP puedan autenticarse
     - export GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcloud_service_account.json
-    # Ejecuta el playbook de Ansible, el cual usará las variables definidas en el entorno
     - ansible-playbook -i "localhost," -c local playbook.yml
   only:
     - main

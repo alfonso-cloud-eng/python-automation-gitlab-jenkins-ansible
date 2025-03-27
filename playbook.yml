@@ -6,8 +6,8 @@
     project_id: "{{ lookup('env','GCP_PROJECT_ID') }}"
     zone: "{{ lookup('env','GCP_ZONE') }}"
     instance_name: "jenkins-vm"
-    machine_type: "e2-micro"  # o "f1-micro" si prefieres
-    image_family: "debian-11"  # Imagen Linux en GCP
+    machine_type: "e2-micro"  # or "f1-micro" if preferred
+    image_family: "debian-11"  # Linux image in GCP
   tasks:
     - name: Crear instancia en GCP (Linux)
       gcp_compute_instance:
@@ -22,6 +22,8 @@
             boot: true
             initialize_params:
               source_image: "projects/debian-cloud/global/images/family/{{ image_family }}"
+        scopes:
+          - "https://www.googleapis.com/auth/cloud-platform"
         metadata: {}
         network_interfaces:
           - network:
@@ -35,19 +37,18 @@
       pause:
         seconds: 60
 
-    - name: Obtener información de la instancia creada
-      google.cloud.gcp_compute_instance_info:
-        name: "{{ instance_name }}"
-        zone: "{{ zone }}"
-        project: "{{ project_id }}"
-        auth_kind: serviceaccount
-        service_account_file: "/tmp/gcloud_service_account.json"
-      register: instance_info
+    - name: Obtener IP de la instancia usando gcloud CLI
+      shell: |
+        gcloud compute instances describe {{ instance_name }} \
+          --zone={{ zone }} \
+          --project={{ project_id }} \
+          --format="get(networkInterfaces[0].accessConfigs[0].natIP)"
+      register: instance_ip
 
     - name: Agregar la instancia creada al inventario dinámico
       add_host:
         name: jenkins-vm
-        ansible_host: "{{ instance_info.resources[0].networkInterfaces[0].accessConfigs[0].natIP }}"
+        ansible_host: "{{ instance_ip.stdout }}"
         ansible_user: "alfonso_cloud_eng"
 
 - name: Configurar Jenkins en la VM (Linux)
@@ -55,8 +56,8 @@
   become: yes
   gather_facts: yes
   vars:
-    ansible_ssh_user: "alfonso_cloud_eng"  # Reemplázalo por el usuario correcto en la VM
-    job_name: "my_jenkins_job"             # Ajusta el nombre del job según necesites
+    ansible_ssh_user: "alfonso_cloud_eng"  # Replace with your actual SSH username on the VM
+    job_name: "my_jenkins_job"             # Customize the Jenkins job name as needed
   tasks:
     - name: Actualizar repositorios APT
       apt:
@@ -71,7 +72,7 @@
           - python3-pip
         state: present
 
-    - name: Instalar Jenkins (usando repositorio oficial)
+    - name: Instalar Jenkins (using official repository)
       shell: |
         curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io.key | sudo apt-key add -
         sudo sh -c 'echo deb https://pkg.jenkins.io/debian-stable binary/ > /etc/apt/sources.list.d/jenkins.list'
@@ -145,7 +146,7 @@
       shell: |
         # Obtener crumb de Jenkins (asumiendo que CSRF está activado)
         CRUMB=$(curl -s 'http://localhost:8080/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,":",//crumb)')
-        # Llamar a la API de Jenkins para crear el job con la configuración XML generada
+        # Llamar a la API de Jenkins para crear el job usando la configuración XML generada
         curl -X POST "http://localhost:8080/createItem?name={{ job_name }}" \
           -H "$CRUMB" \
           -H "Content-Type: application/xml" \
