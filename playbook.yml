@@ -22,6 +22,7 @@
             boot: true
             initialize_params:
               source_image: "projects/debian-cloud/global/images/family/{{ image_family }}"
+        metadata: {}
         network_interfaces:
           - network: 
               name: "global/networks/default"
