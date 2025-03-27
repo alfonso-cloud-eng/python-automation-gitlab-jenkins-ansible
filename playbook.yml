@@ -6,8 +6,8 @@
     project_id: "{{ lookup('env','GCP_PROJECT_ID') }}"
     zone: "{{ lookup('env','GCP_ZONE') }}"
     instance_name: "jenkins-vm"
-    machine_type: "e2-micro"  # or "f1-micro" if you prefer
-    image_family: "debian-11"  # Linux image in GCP
+    machine_type: "e2-micro"  # o "f1-micro" si prefieres
+    image_family: "debian-11"  # Imagen Linux en GCP
   tasks:
     - name: Crear instancia en GCP (Linux)
       gcp_compute_instance:
@@ -35,10 +35,19 @@
       pause:
         seconds: 60
 
+    - name: Obtener información de la instancia creada
+      google.cloud.gcp_compute_instance_info:
+        name: "{{ instance_name }}"
+        zone: "{{ zone }}"
+        project: "{{ project_id }}"
+        auth_kind: serviceaccount
+        service_account_file: "/tmp/gcloud_service_account.json"
+      register: instance_info
+
     - name: Agregar la instancia creada al inventario dinámico
       add_host:
         name: jenkins-vm
-        ansible_host: "{{ vm_info.resources[0].networkInterfaces[0].accessConfigs[0].natIP }}"
+        ansible_host: "{{ instance_info.resources[0].networkInterfaces[0].accessConfigs[0].natIP }}"
         ansible_user: "alfonso_cloud_eng"
 
 - name: Configurar Jenkins en la VM (Linux)
@@ -46,8 +55,8 @@
   become: yes
   gather_facts: yes
   vars:
-    ansible_ssh_user: "alfonso_cloud_eng"  # Replace with your actual SSH username on the VM
-    job_name: "my_jenkins_job"             # Customize the Jenkins job name as desired
+    ansible_ssh_user: "alfonso_cloud_eng"  # Reemplázalo por el usuario correcto en la VM
+    job_name: "my_jenkins_job"             # Ajusta el nombre del job según necesites
   tasks:
     - name: Actualizar repositorios APT
       apt:
@@ -96,7 +105,7 @@
       args:
         executable: /bin/bash
 
-    # --- Begin steps to create the Jenkins job automatically ---
+    # --- Steps to create the Jenkins job automatically ---
     - name: Copiar plantilla para configuración del job en Jenkins
       copy:
         dest: /tmp/job_config.xml.j2
@@ -108,7 +117,7 @@
             <keepDependencies>false</keepDependencies>
             <properties/>
             <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@2.92">
-              <!-- Aquí se inserta el contenido del Jenkinsfile, escapado para XML -->
+              <!-- Insert the Jenkinsfile content, escaped for XML -->
               <script>{{ jenkinsfile_content | xml_escape }}</script>
               <sandbox>true</sandbox>
             </definition>
@@ -134,9 +143,9 @@
 
     - name: Crear job pipeline en Jenkins
       shell: |
-        # Obtener crumb de Jenkins (suponiendo que CSRF está activado)
+        # Obtener crumb de Jenkins (asumiendo que CSRF está activado)
         CRUMB=$(curl -s 'http://localhost:8080/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,":",//crumb)')
-        # Llama a la API de Jenkins para crear el job usando la configuración XML generada
+        # Llamar a la API de Jenkins para crear el job con la configuración XML generada
         curl -X POST "http://localhost:8080/createItem?name={{ job_name }}" \
           -H "$CRUMB" \
           -H "Content-Type: application/xml" \

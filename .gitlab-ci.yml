@@ -5,6 +5,7 @@ provision_infra:
   stage: provision
   image: williamyeh/ansible:alpine3
   script:
+    - ansible-galaxy collection install google.cloud
     # Install the required Google libraries
     - pip install google-auth google-auth-httplib2 google-api-python-client
     # Guarda el contenido del JSON de la cuenta de servicio en un archivo temporal
