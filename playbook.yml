@@ -49,6 +49,26 @@
         ansible_host: "{{ instance_ip.stdout }}"
         ansible_user: "alfonso_cloud_eng"
 
+- name: Check environment on the VM
+  hosts: jenkins-vm
+  gather_facts: no
+  become: yes
+  tasks:
+    - name: Show /etc/os-release and list /usr/bin
+      shell: |
+        echo "=== /etc/os-release ==="
+        cat /etc/os-release || true
+        echo "=== Checking apt-get ==="
+        which apt-get || true
+        echo "=== Listing /usr/bin ==="
+        ls /usr/bin || true
+      args:
+        executable: /bin/bash
+      register: env_debug
+
+    - debug:
+        var: env_debug.stdout
+
 - name: Configurar Jenkins en la VM (Linux)
   hosts: jenkins-vm
   become: yes
@@ -57,9 +77,15 @@
     ansible_ssh_user: "alfonso_cloud_eng"  # Replace with your actual SSH username on the VM
     job_name: "my_jenkins_job"             # Customize the Jenkins job name as needed
   tasks:
-    - name: Actualizar repositorios APT
-      apt:
-        update_cache: yes
+    - name: Verificar ubicación de apt-get
+      shell: "env PATH=/usr/bin:$PATH command -v apt-get"
+      register: apt_get_path
+
+    - debug:
+        msg: "apt-get is located at: {{ apt_get_path.stdout }}"
+
+    - name: Actualizar repositorios APT e instalar python3-apt manually
+      shell: "env PATH=/usr/bin:$PATH apt-get update && env PATH=/usr/bin:$PATH apt-get install -y python3-apt"
 
     - name: Instalar dependencias necesarias (Java, wget, python3, python3-pip)
       apt:
