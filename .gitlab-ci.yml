@@ -33,10 +33,6 @@ provision_infra:
     - terraform init
     - terraform apply -auto-approve
     # 7. Capture the Jenkins VM IP address (assuming Terraform outputs a variable named "jenkins_vm_ip").
-    - terraform output -raw jenkins_vm_ip > ../../jenkins_ip.txt
-  artifacts:
-    paths:
-      - jenkins_ip.txt
   only:
     - main
 
