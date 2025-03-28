@@ -45,12 +45,14 @@ provision_and_configure:
     - pip install --upgrade pip
     - pip install ansible
     # 11. Run your Ansible playbook using the generated SSH key.
+    - export SLACK_WEBHOOK_URL=$(echo "$SLACK_WEBHOOK_URL_ENCODED" | base64 -d)
     - |
       ansible-playbook playbook.yml \
         -i "${JENKINS_IP}," \
         --user=jenkins \
         --private-key=/tmp/id_rsa \
-        --ssh-extra-args='-o StrictHostKeyChecking=no'
+        --ssh-extra-args='-o StrictHostKeyChecking=no' \
+        --extra-vars "slack_webhook_url=${SLACK_WEBHOOK_URL}"
     - |
       echo "Access Jenkins on your VM here: http://$JENKINS_IP:8080"
       echo "Jenkins Admin Username: $ADMIN_USER"
