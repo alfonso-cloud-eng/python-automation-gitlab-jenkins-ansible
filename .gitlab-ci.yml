@@ -60,13 +60,8 @@ configure_jenkins:
     - git clone https://github.com/alfonso-cloud-eng/python-automation-gitlab-jenkins-ansible.git
     - cd python-automation-gitlab-jenkins-ansible
     # 4. Prepare SSH access
-    #    Option A) If you have a private key in GitLab CI variable:
-    #      - echo "GCLOUD_SERVICE_ACCOUNT_KEY_B64" | base64 -d > ~/.ssh/id_rsa
-    #      - chmod 600 ~/.ssh/id_rsa
-    #    Option B) If your Jenkins VM is using GCP OS Login or a known key, adjust accordingly.
-    #
-    # 5. Run Ansible playbook
-    #    We'll build a one-line inventory that references the IP from the artifact.
+    - echo "GCLOUD_SERVICE_ACCOUNT_KEY_B64" | base64 -d > ~/.ssh/id_rsa
+    - chmod 600 ~/.ssh/id_rsa
     - |
       ansible-playbook playbook.yml \
         -i "${JENKINS_IP}," \
