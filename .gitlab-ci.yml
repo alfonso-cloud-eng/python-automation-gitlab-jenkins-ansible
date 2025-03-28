@@ -1,15 +1,51 @@
 stages:
   - provision
+  - configure
 
 provision_infra:
   stage: provision
   image: google/cloud-sdk:alpine
   script:
-    - apk update && apk add --no-cache py3-pip bash
-    - pip3 install --break-system-packages ansible google-auth google-auth-httplib2 google-api-python-client
-    - ansible-galaxy collection install google.cloud --ignore-errors || true
+    # 1. Install required packages: git, terraform, and bash.
+    - apk update && apk add --no-cache git terraform bash
+    # 2. Decode and configure your service account credentials.
     - echo "$GCLOUD_SERVICE_ACCOUNT_KEY_B64" | base64 -d > /tmp/gcloud_service_account.json
     - export GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcloud_service_account.json
-    - ansible-playbook -i "localhost," -c local playbook.yml
+    - gcloud auth activate-service-account --key-file=/tmp/gcloud_service_account.json
+    - gcloud config set project "$GCP_PROJECT_ID"
+    # 3. Clone only the terraform folder using sparse-checkout.
+    - git clone --depth 1 --filter=blob:none --sparse https://github.com/alfonso-cloud-eng/python-automation-gitlab-jenkins-ansible.git
+    - cd python-automation-gitlab-jenkins-ansible
+    - git sparse-checkout set terraform
+    - cd terraform
+    # 4. Initialize and apply Terraform to provision the Jenkins VM.
+    - terraform init
+    - terraform apply -auto-approve
+    # 5. Capture the Jenkins VM IP address (ensure your Terraform outputs a variable named "jenkins_vm_ip").
+    - terraform output -raw jenkins_vm_ip > ../../jenkins_ip.txt
+  artifacts:
+    paths:
+      - jenkins_ip.txt
+  only:
+    - main
+
+configure_jenkins:
+  stage: configure
+  image: google/cloud-sdk:alpine
+  dependencies:
+    - provision_infra
+  script:
+    # 1. Install required packages: git, pip, bash, and openssh-client.
+    - apk update && apk add --no-cache git py3-pip bash openssh-client
+    # 2. Install Ansible.
+    - pip3 install --break-system-packages ansible
+    # 3. Clone the repository to retrieve your Ansible playbook.
+    - git clone --depth 1 https://github.com/alfonso-cloud-eng/python-automation-gitlab-jenkins-ansible.git
+    - cd python-automation-gitlab-jenkins-ansible
+    # 4. Retrieve the Jenkins VM IP from the artifact.
+    - export JENKINS_VM_IP=$(cat ../jenkins_ip.txt)
+    # 5. Run the Ansible playbook against the Jenkins VM.
+    #    Adjust ansible_user or other SSH connection variables as needed.
+    - ansible-playbook -i "$JENKINS_VM_IP," playbook.yml --extra-vars "ansible_become=yes ansible_user=jenkins"
   only:
     - main

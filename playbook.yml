@@ -1,35 +1,23 @@
-- name: Crear VM en GCP e instalar Jenkins
-  hosts: localhost
-  connection: local
-  gather_facts: no
-  vars:
-    project_id: "{{ lookup('env','GCP_PROJECT_ID') }}"
-    zone: "{{ lookup('env','GCP_ZONE') }}"
-    instance_name: "jenkins-vm"
-    machine_type: "e2-micro"  # or "f1-micro" if preferred
-    image_family: "debian-11"  # Linux image in GCP
+---
+- name: Configure Jenkins VM for secure access
+  hosts: all
+  become: yes
   tasks:
-    - name: Crear instancia en GCP (Linux)
-      gcp_compute_instance:
-        name: "{{ instance_name }}"
-        machine_type: "{{ machine_type }}"
-        zone: "{{ zone }}"
-        project: "{{ project_id }}"
-        auth_kind: serviceaccount
-        service_account_file: "/tmp/gcloud_service_account.json"
-        disks:
-          - auto_delete: true
-            boot: true
-            initialize_params:
-              source_image: "projects/debian-cloud/global/images/family/{{ image_family }}"
-        scopes:
-          - "https://www.googleapis.com/auth/cloud-platform"
-        metadata: {}
-        network_interfaces:
-          - network:
-              name: "global/networks/default"
-            access_configs:
-              - name: "External NAT"
-                type: "ONE_TO_ONE_NAT"
-      register: vm_info
+    - name: Enable security in Jenkins config.xml
+      replace:
+        path: /var/lib/jenkins/config.xml
+        regexp: '<useSecurity>false</useSecurity>'
+        replace: '<useSecurity>true</useSecurity>'
+      notify: Restart Jenkins
 
+    - name: Ensure jenkins user has passwordless sudo privileges
+      lineinfile:
+        dest: /etc/sudoers
+        line: 'jenkins ALL=(ALL) NOPASSWD:ALL'
+        validate: 'visudo -cf %s'
+
+  handlers:
+    - name: Restart Jenkins
+      systemd:
+        name: jenkins
+        state: restarted

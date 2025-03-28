@@ -17,8 +17,20 @@ locals {
   }
 }
 
+# Enable Compute Engine API
+resource "google_project_service" "compute_engine" {
+  project = var.project_id
+  service = "compute.googleapis.com"
+}
+
+# Enable Infrastructure Manager (Deployment Manager) API
+resource "google_project_service" "infrastructure_manager" {
+  project = var.project_id
+  service = "deploymentmanager.googleapis.com"
+}
+
 resource "google_compute_instance" "instance" {
-  name = "${var.goog_cm_deployment_name}-vm"
+  name = "jenkins-vm"
   machine_type = var.machine_type
   zone = var.zone
 
