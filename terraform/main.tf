@@ -49,7 +49,7 @@ resource "google_compute_instance" "instance" {
   metadata = merge(
     local.metadata,
     {
-      "enable-oslogin" = "TRUE",
+      "enable-oslogin" = "FALSE",
       "ssh-keys"       = "jenkins:${var.ssh_public_key}"
     }
   )
