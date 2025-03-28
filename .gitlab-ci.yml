@@ -51,7 +51,6 @@ provision_and_configure:
         --user=jenkins \
         --private-key=/tmp/id_rsa \
         --ssh-extra-args='-o StrictHostKeyChecking=no' \
-        --extra-vars "slack_webhook_url=${SLACK_WEBHOOK_URL}"
     - |
       echo "Access Jenkins on your VM here: http://$JENKINS_IP:8080"
       echo "Jenkins Admin Username: $ADMIN_USER"
