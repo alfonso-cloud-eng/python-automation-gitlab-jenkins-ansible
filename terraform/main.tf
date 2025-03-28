@@ -107,17 +107,9 @@ resource "google_compute_firewall" tcp_443 {
   target_tags = ["${var.goog_cm_deployment_name}-deployment"]
 }
 
-resource "random_password" "admin" {
-  length = 8
-  special = true
-}
-
-
-resource "google_compute_firewall" "default_allow_http_8080" {
-  name    = "default-allow-http-8080"
-  project = "handy-boulevard-453219-s1"
-  network = "default"
-
+resource "google_compute_firewall" tcp_8080 {
+  name    = "${var.goog_cm_deployment_name}-tcp-8080"
+  network = element(var.networks, 0)
   direction = "INGRESS"
   priority  = 1000
 
@@ -127,4 +119,11 @@ resource "google_compute_firewall" "default_allow_http_8080" {
   }
 
   source_ranges = ["0.0.0.0/0"]
+  target_tags = ["${var.goog_cm_deployment_name}-deployment"]
+}
+
+
+resource "random_password" "admin" {
+  length = 8
+  special = true
 }
