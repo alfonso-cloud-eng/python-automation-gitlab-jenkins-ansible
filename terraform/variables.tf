@@ -15,6 +15,11 @@ variable "goog_cm_deployment_name" {
   default     = "jenkins-vm-deployment"
 }
 
+variable "ssh_public_key" {
+  type        = string
+  description = "Public SSH key for the jenkins user"
+}
+
 variable "source_image" {
   description = "The image name for the disk for the VM instance."
   type        = string
