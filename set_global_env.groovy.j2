@@ -1,0 +1,19 @@
+import jenkins.model.Jenkins
+import hudson.slaves.EnvironmentVariablesNodeProperty
+
+def jenkinsInstance = Jenkins.getInstance()
+def globalNodeProps = jenkinsInstance.getGlobalNodeProperties()
+def envVarsNodeList = globalNodeProps.getAll(EnvironmentVariablesNodeProperty.class)
+def envVars = [:]
+if (envVarsNodeList.isEmpty()) {
+    def newEnvVarsNodeProperty = new EnvironmentVariablesNodeProperty(envVars)
+    globalNodeProps.add(newEnvVarsNodeProperty)
+    println "Created new global environment variables property."
+} else {
+    envVars = envVarsNodeList.get(0).getEnvVars()
+}
+
+// Set your variable from Ansible's passed value.
+envVars.put("SLACK_WEBHOOK_URL", "{{ slack_webhook_url }}")
+jenkinsInstance.save()
+println "Global environment variable SLACK_WEBHOOK_URL set to: " + envVars.get("SLACK_WEBHOOK_URL")

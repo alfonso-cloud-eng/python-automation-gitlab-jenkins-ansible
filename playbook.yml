@@ -15,29 +15,12 @@
   hosts: all
   become: yes
   tasks:
-    - name: Run Groovy script to set global environment variable
-      shell: |
-        cat <<EOF > /tmp/set_global_env.groovy
-        import jenkins.model.Jenkins
-        import hudson.slaves.EnvironmentVariablesNodeProperty
-        
-        def jenkinsInstance = Jenkins.getInstance()
-        def globalNodeProps = jenkinsInstance.getGlobalNodeProperties()
-        def envVarsNodeList = globalNodeProps.getAll(EnvironmentVariablesNodeProperty.class)
-        def envVars = [:]
-        if (envVarsNodeList.isEmpty()) {
-            def newEnvVarsNodeProperty = new EnvironmentVariablesNodeProperty(envVars)
-            globalNodeProps.add(newEnvVarsNodeProperty)
-            println "Created new global environment variables property."
-        } else {
-            envVars = envVarsNodeList.get(0).getEnvVars()
-        }
-        
-        // Set your variable from Ansible's passed value.
-        envVars.put("SLACK_WEBHOOK_URL", "{{ slack_webhook_url }}")
-        jenkinsInstance.save()
-        println "Global environment variable SLACK_WEBHOOK_URL set to: " + envVars.get("SLACK_WEBHOOK_URL")
-        EOF
-        java -jar /path/to/jenkins-cli.jar -s http://localhost:8080/ groovy = < /tmp/set_global_env.groovy
+    - name: Create Groovy script to set global environment variable
+      template:
+        src: set_global_env.groovy.j2
+        dest: /tmp/set_global_env.groovy
+        mode: '0755'
+    - name: Run Groovy script via Jenkins CLI
+      shell: java -jar /path/to/jenkins-cli.jar -s http://localhost:8080/ groovy = < /tmp/set_global_env.groovy
       args:
         warn: false
