@@ -1,23 +1,12 @@
 ---
-- name: Configure Jenkins VM for secure access
+- name: Configure Jenkins VM for passwordless sudo
   hosts: all
   become: yes
   tasks:
-    - name: Enable security in Jenkins config.xml
-      replace:
-        path: /var/lib/jenkins/config.xml
-        regexp: '<useSecurity>false</useSecurity>'
-        replace: '<useSecurity>true</useSecurity>'
-      notify: Restart Jenkins
-
-    - name: Ensure jenkins user has passwordless sudo privileges
+    - name: Add jenkins user to sudoers for passwordless sudo
       lineinfile:
-        dest: /etc/sudoers
+        path: /etc/sudoers
+        state: present
+        regexp: '^jenkins '
         line: 'jenkins ALL=(ALL) NOPASSWD:ALL'
-        validate: 'visudo -cf %s'
-
-  handlers:
-    - name: Restart Jenkins
-      systemd:
-        name: jenkins
-        state: restarted
+        validate: '/usr/sbin/visudo -cf %s'
