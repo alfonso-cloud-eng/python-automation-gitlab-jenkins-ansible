@@ -1,7 +1,7 @@
 pipeline {
     agent any
     environment {
-        SLACK_WEBHOOK_URL = INSERT WEBHOOK URL HERE    }
+        SLACK_WEBHOOK_URL = "INSERT WEBHOOK URL HERE"    }
     stages {
         stage('Prepare Directory') {
             steps {
