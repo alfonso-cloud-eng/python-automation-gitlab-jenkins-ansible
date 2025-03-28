@@ -50,7 +50,7 @@ provision_and_configure:
         -i "${JENKINS_IP}," \
         --user=jenkins \
         --private-key=/tmp/id_rsa \
-        --ssh-extra-args='-o StrictHostKeyChecking=no' \
+        --ssh-extra-args='-o StrictHostKeyChecking=no'
     - |
       echo "Access Jenkins on your VM here: http://$JENKINS_IP:8080"
       echo "Jenkins Admin Username: $ADMIN_USER"
