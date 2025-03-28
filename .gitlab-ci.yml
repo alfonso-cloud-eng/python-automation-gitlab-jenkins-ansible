@@ -35,6 +35,8 @@ provision_and_configure:
     - terraform apply -auto-approve
     # 8. Capture the Jenkins VM External IP.
     - export JENKINS_IP=$(terraform output -raw instance_nat_ip)
+    - export ADMIN_USER=$(terraform output -raw admin_user)
+    - export ADMIN_PASSWORD=$(terraform output -raw admin_password)
     # 9. Go back to the repository root (where your Ansible playbook is located).
     - cd ..
     # 10. Create and activate a Python virtual environment for Ansible.
@@ -50,8 +52,8 @@ provision_and_configure:
         --private-key=/tmp/id_rsa \
         --ssh-extra-args='-o StrictHostKeyChecking=no'
     - |
-      echo "Access Jenkins on your VM here: http://$(terraform output -raw instance_nat_ip):8080"
-      echo "Jenkins Admin Username: $(terraform output -raw admin_user)"
-      echo "Jenkins Admin Password: $(terraform output -raw admin_password)"
+      echo "Access Jenkins on your VM here: http://$JENKINS_IP:8080"
+      echo "Jenkins Admin Username: $ADMIN_USER"
+      echo "Jenkins Admin Password: $ADMIN_PASSWORD"
   only:
     - main
