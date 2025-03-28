@@ -3,21 +3,22 @@ variable "project_id" {
   type        = string
 }
 
+variable "zone" {
+  description = "The zone for the solution to be deployed."
+  type        = string
+}
+
 // Marketplace requires this variable name to be declared
 variable "goog_cm_deployment_name" {
   description = "The name of the deployment and VM instance."
   type        = string
+  default     = "jenkins-vm-deployment"
 }
 
 variable "source_image" {
   description = "The image name for the disk for the VM instance."
   type        = string
   default     = "projects/mpi-click-to-deploy-images/global/images/jenkins-v20241201"
-}
-
-variable "zone" {
-  description = "The zone for the solution to be deployed."
-  type        = string
 }
 
 variable "machine_type" {

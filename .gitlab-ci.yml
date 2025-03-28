@@ -1,31 +1,53 @@
 stages:
   - provision
+  - output
   - configure
 
 provision_infra:
   stage: provision
   image: google/cloud-sdk:alpine
   script:
-    # 1. Install required packages: git, terraform, and bash.
-    - apk update && apk add --no-cache git terraform bash
-    # 2. Decode and configure your service account credentials.
+    # 1. Install required packages: git, curl, unzip, bash.
+    - apk update && apk add --no-cache git curl unzip bash
+    # 2. Install Terraform manually:
+    - |
+      TERRAFORM_VERSION=1.5.0
+      curl -o terraform.zip https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip
+      unzip terraform.zip
+      chmod +x terraform
+      mv terraform /usr/local/bin/
+    # 3. Decode and configure your service account credentials.
     - echo "$GCLOUD_SERVICE_ACCOUNT_KEY_B64" | base64 -d > /tmp/gcloud_service_account.json
     - export GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcloud_service_account.json
     - gcloud auth activate-service-account --key-file=/tmp/gcloud_service_account.json
     - gcloud config set project "$GCP_PROJECT_ID"
-    # 3. Clone only the terraform folder using sparse-checkout.
+    # 4. Export TF_VAR variables so that Terraform picks them up.
+    - export TF_VAR_project_id="$GCP_PROJECT_ID"
+    - export TF_VAR_zone="$GCP_ZONE"
+    # 5. Clone only the terraform folder using sparse-checkout.
     - git clone --depth 1 --filter=blob:none --sparse https://github.com/alfonso-cloud-eng/python-automation-gitlab-jenkins-ansible.git
     - cd python-automation-gitlab-jenkins-ansible
     - git sparse-checkout set terraform
     - cd terraform
-    # 4. Initialize and apply Terraform to provision the Jenkins VM.
+    # 6. Initialize and apply Terraform to provision the Jenkins VM.
     - terraform init
     - terraform apply -auto-approve
-    # 5. Capture the Jenkins VM IP address (ensure your Terraform outputs a variable named "jenkins_vm_ip").
+    # 7. Capture the Jenkins VM IP address (assuming Terraform outputs a variable named "jenkins_vm_ip").
     - terraform output -raw jenkins_vm_ip > ../../jenkins_ip.txt
   artifacts:
     paths:
       - jenkins_ip.txt
+  only:
+    - main
+
+
+display_terraform_outputs:
+  stage: output
+  image: hashicorp/terraform:light
+  script: |
+    echo "Jenkins VM External IP: $(terraform output -raw instance_nat_ip)"
+    echo "Jenkins Admin Username: $(terraform output -raw admin_user)"
+    echo "Jenkins Admin Password: $(terraform output -raw admin_password)"
   only:
     - main
 

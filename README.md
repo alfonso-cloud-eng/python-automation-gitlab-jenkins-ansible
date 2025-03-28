@@ -1,11 +1,6 @@
 GCLOUD_SERVICE_ACCOUNT_KEY_B64
 GCP_PROJECT_ID
 GCP_ZONE
-JENKINS_USERNAME
-JENKINS_PASSWORD
-
-Compute Engine API 
-Infrastructure Manager API 
 
 roles/config.agent
 roles/compute.admin
