@@ -22,5 +22,3 @@
         mode: '0755'
     - name: Run Groovy script via Jenkins CLI
       shell: java -jar /path/to/jenkins-cli.jar -s http://localhost:8080/ groovy = < /tmp/set_global_env.groovy
-      args:
-        warn: false
