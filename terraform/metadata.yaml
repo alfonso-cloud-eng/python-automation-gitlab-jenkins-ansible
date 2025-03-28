@@ -1,0 +1,125 @@
+apiVersion: blueprints.cloud.google.com/v1alpha1
+kind: BlueprintMetadata
+metadata:
+  annotations:
+    autogenSpecType: SINGLE_VM
+    config.kubernetes.io/local-config: "true"
+  name: marketplace-tools
+spec:
+  content: {}
+  info:
+    actuationTool:
+      flavor: Terraform
+      version: '>= 1.2'
+    description: {}
+    softwareGroups:
+    - software:
+      - title: Debian
+        version: "11.11"
+      type: SG_OS
+    - software:
+      - title: Apache2
+        version: 2.4.62
+      - title: Git
+        version: 2.30.2
+      - title: Groovy
+        version: 2.4.21
+      - title: Jenkins
+        version: 2.479.2
+      - title: OpenJDK
+        version: 17.0.13
+      - title: OpenSSH
+        version: 8.4p1
+      - title: Subversion
+        version: 1.14.1
+    title: Google Cloud Marketplace Terraform Module
+    version: "1.0"
+  interfaces:
+    outputs:
+    - description: Machine type for the compute instance.
+      name: instance_machine_type
+    - description: External IP of the compute instance.
+      name: instance_nat_ip
+    - description: Self-link for the network of the compute instance.
+      name: instance_network
+    - description: Self-link for the compute instance.
+      name: instance_self_link
+    - description: Zone for the compute instance.
+      name: instance_zone
+    - description: Site Url
+      name: site_url
+    - description: Username for Admin password.
+      name: admin_user
+    - description: Password for Admin.
+      name: admin_password
+    variables:
+    - description: The ID of the project in which to provision resources.
+      name: project_id
+      required: true
+      varType: string
+    - description: The name of the deployment and VM instance.
+      name: goog_cm_deployment_name
+      required: true
+      varType: string
+    - defaultValue: projects/mpi-click-to-deploy-images/global/images/jenkins-v20241201
+      description: The image name for the disk for the VM instance.
+      name: source_image
+      varType: string
+    - description: The zone for the solution to be deployed.
+      name: zone
+      required: true
+      varType: string
+    - defaultValue: pd-standard
+      description: The boot disk type for the VM instance.
+      name: boot_disk_type
+      varType: string
+    - defaultValue: 20
+      description: The boot disk size for the VM instance in GBs
+      name: boot_disk_size
+      varType: integer
+    - defaultValue: e2-standard-2
+      description: The machine type to create, e.g. e2-small
+      name: machine_type
+      varType: string
+    - defaultValue:
+      - default
+      description: The network name to attach the VM instance.
+      name: networks
+      varType: list(string)
+    - defaultValue: []
+      description: The sub network name to attach the VM instance.
+      name: sub_networks
+      varType: list(string)
+    - defaultValue:
+      - EPHEMERAL
+      description: The external IPs assigned to the VM for public access.
+      name: external_ips
+      varType: list(string)
+    - defaultValue: true
+      description: Allow HTTP traffic from the Internet
+      name: enable_tcp_80
+      varType: bool
+    - defaultValue: ""
+      description: Source IP ranges for HTTP traffic
+      name: tcp_80_source_ranges
+      varType: string
+    - defaultValue: true
+      description: Allow HTTPS traffic from the Internet
+      name: enable_tcp_443
+      varType: bool
+    - defaultValue: ""
+      description: Source IP ranges for HTTPS traffic
+      name: tcp_443_source_ranges
+      varType: string
+    - defaultValue: true
+      description: Allow read write access to Google Compute Engine APIs on the VM
+      name: enable_compute_api
+      varType: bool
+    - defaultValue: false
+      description: Enables Cloud Logging.
+      name: enable_cloud_logging
+      varType: bool
+    - defaultValue: false
+      description: Enables Cloud Monitoring.
+      name: enable_cloud_monitoring
+      varType: bool

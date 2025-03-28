@@ -1,0 +1,178 @@
+apiVersion: blueprints.cloud.google.com/v1alpha1
+kind: BlueprintMetadata
+metadata:
+  annotations:
+    autogenSpecType: SINGLE_VM
+    config.kubernetes.io/local-config: "true"
+  name: marketplace-tools-display
+spec:
+  ui:
+    input:
+      booleanGroups:
+      - name: compute_api_access
+        title: Compute API
+      sections:
+      - name: boot_disk
+        title: Boot Disk
+        tooltip: Each instance requires a disk to boot from.
+      - name: networking
+        title: Networking
+      - name: api_access
+        title: API Access
+        tooltip: Applications running on the VM can call Google Cloud APIs. Select
+          the API access you want to allow. <a href="https://cloud.google.com/compute/docs/authentication">Learn
+          more</a>
+      - name: google_cloud_operations
+        subtext: Monitoring and management for services, containers, applications,
+          and infrastructure
+        title: Google Cloud Operations
+      variables:
+        boot_disk_size:
+          max: 10000
+          min: 20
+          name: boot_disk_size
+          section: boot_disk
+          title: Boot disk size in GB
+          xGoogleProperty:
+            gceDiskSize:
+              diskTypeVariable: boot_disk_type
+            type: ET_GCE_DISK_SIZE
+        boot_disk_type:
+          name: boot_disk_type
+          section: boot_disk
+          title: Boot disk type
+          xGoogleProperty:
+            type: ET_GCE_DISK_TYPE
+            zoneProperty: zone
+        enable_cloud_logging:
+          name: enable_cloud_logging
+          section: google_cloud_operations
+          title: Enable Cloud Logging
+          tooltip: Cloud Logging allows you to store, search, analyze, monitor, and
+            alert on log data and events. <a href="https://cloud.google.com/logging/">Learn
+            more</a>
+        enable_cloud_monitoring:
+          name: enable_cloud_monitoring
+          section: google_cloud_operations
+          title: Enable Cloud Monitoring
+          tooltip: Cloud Monitoring provides visibility into the performance, uptime,
+            and overall health of cloud-powered applications. <a href="https://cloud.google.com/monitoring/">Learn
+            more</a>
+        enable_compute_api:
+          booleanGroup: compute_api_access
+          name: enable_compute_api
+          section: api_access
+          title: Allow read write access to Google Compute Engine APIs on the VM
+        enable_tcp_80:
+          name: enable_tcp_80
+          section: networking
+          title: Allow HTTP traffic from the Internet
+          xGoogleProperty:
+            gceFirewall:
+              networkVariable: networks
+            type: ET_GCE_FIREWALL
+        enable_tcp_443:
+          name: enable_tcp_443
+          section: networking
+          title: Allow HTTPS traffic from the Internet
+          xGoogleProperty:
+            gceFirewall:
+              networkVariable: networks
+            type: ET_GCE_FIREWALL
+        external_ips:
+          maxItems: 8
+          minItems: 1
+          name: external_ips
+          section: networking
+          title: External IP
+          tooltip: An external IP address associated with this instance. Selecting
+            "None" will result in the instance having no external internet access.
+            <a href="https://cloud.google.com/compute/docs/configure-instance-ip-addresses">Learn
+            more</a>
+          xGoogleProperty:
+            gceExternalIp:
+              allowStaticIps: true
+              networkVariable: networks
+              notConfigurable: false
+            type: ET_GCE_EXTERNAL_IP
+        goog_cm_deployment_name:
+          name: goog_cm_deployment_name
+          title: Goog Cm Deployment Name
+        machine_type:
+          name: machine_type
+          title: Machine type
+          xGoogleProperty:
+            gceMachineType:
+              minCpu: 1
+              minRamGb: 1.690000057220459
+            type: ET_GCE_MACHINE_TYPE
+            zoneProperty: zone
+        networks:
+          maxItems: 8
+          minItems: 1
+          name: networks
+          section: networking
+          title: Network name
+          xGoogleProperty:
+            gceNetwork:
+              allowSharedVpcs: true
+              machineTypeVariable: machine_type
+            type: ET_GCE_NETWORK
+        project_id:
+          invisible: true
+          name: project_id
+          title: Project Id
+        source_image:
+          enumValueLabels:
+          - label: jenkins-v20241201
+            value: projects/mpi-click-to-deploy-images/global/images/jenkins-v20241201
+          name: source_image
+          title: Image version
+          xGoogleProperty:
+            type: ET_GCE_DISK_IMAGE
+        sub_networks:
+          maxItems: 8
+          minItems: 1
+          name: subnetworks
+          section: networking
+          title: Subnetwork name
+          xGoogleProperty:
+            gceSubnetwork:
+              networkVariable: networks
+            type: ET_GCE_SUBNETWORK
+            zoneProperty: zone
+        tcp_80_source_ranges:
+          name: tcp_80_source_ranges
+          placeholder: 0.0.0.0/0, 192.169.0.2/24
+          section: networking
+          title: Source IP ranges for HTTP traffic
+          tooltip: Traffic is only allowed from sources within these IP address ranges.
+            Use CIDR notation when entering ranges. <a href="https://cloud.google.com/compute/docs/networking#firewalls">Learn
+            more</a>
+          xGoogleProperty:
+            gceFirewallRange:
+              firewallVariable: enable_tcp_80
+            type: ET_GCE_FIREWALL_RANGE
+        tcp_443_source_ranges:
+          name: tcp_443_source_ranges
+          placeholder: 0.0.0.0/0, 192.169.0.2/24
+          section: networking
+          title: Source IP ranges for HTTPS traffic
+          tooltip: Traffic is only allowed from sources within these IP address ranges.
+            Use CIDR notation when entering ranges. <a href="https://cloud.google.com/compute/docs/networking#firewalls">Learn
+            more</a>
+          xGoogleProperty:
+            gceFirewallRange:
+              firewallVariable: enable_tcp_443
+            type: ET_GCE_FIREWALL_RANGE
+        zone:
+          name: zone
+          title: Zone
+          xGoogleProperty:
+            type: ET_GCE_ZONE
+    runtime:
+      suggestedActions:
+      - description: To update your SSL certificate, you will need to copy certificate
+          files and a private key to the server, and update the Apache2 SSL configuration.
+        heading: Change the SSL certificate.
+        snippet: vim /etc/apache2/conf-enabled/jenkins.conf

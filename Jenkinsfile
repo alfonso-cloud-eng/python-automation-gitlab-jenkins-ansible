@@ -1,30 +1,39 @@
 pipeline {
     agent any
+    environment {
+        SLACK_WEBHOOK_URL = "https://hooks.slack.com/services/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"
+    }
     stages {
-        stage('Set Slack Webhook') {
+        stage('Prepare Directory') {
             steps {
                 sh '''
-                  export SLACK_WEBHOOK_URL="https://hooks.slack.com/services/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"
-                  echo $SLACK_WEBHOOK_URL
+                    mkdir -p ~/myapp
+                    chmod 777 ~/myapp
                 '''
             }
         }
-        stage('Install Dependencies') {
+        stage('Download Application') {
             steps {
                 sh '''
-                  # Si no está instalado python3-pip, ya fue instalado por Ansible.
-                  # De todas formas, revisamos que tengamos pip3
-                  pip3 install --upgrade pip
-                  pip3 install yfinance slack_sdk apscheduler
+                    cd ~/myapp
+                    rm -f stocks-slack.py
+                    wget https://raw.githubusercontent.com/alfonso-cloud-eng/python-automation-gitlab-jenkins-ansible/main/stocks-slack.py -O stocks-slack.py
+                    chmod +x stocks-slack.py
+                '''
+            }
+        }
+        stage('Install Python & Dependencies') {
+            steps {
+                sh '''
+                    sudo apt update && sudo apt install -y python3 python3-pip
+                    pip3 install yfinance slack_sdk apscheduler
                 '''
             }
         }
         stage('Run stocks-slack.py') {
             steps {
-                sh '''
-                  cd /home/tu_usuario_linux/myapp
-                  python3 stocks-slack.py
-                '''
+                // Run the Python script. If it’s long-running, consider running it in the background.
+                sh 'python3 -u ~/myapp/stocks-slack.py'
             }
         }
     }
