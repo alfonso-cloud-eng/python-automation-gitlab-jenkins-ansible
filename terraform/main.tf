@@ -46,7 +46,14 @@ resource "google_compute_instance" "instance" {
     }
   }
 
-  metadata = local.metadata
+  metadata = merge(
+    local.metadata,
+    {
+      "enable-oslogin" = "TRUE",
+      "ssh-keys"       = "jenkins:${var.ssh_public_key}"
+    }
+  )
+
 
   dynamic "network_interface" {
     for_each = local.network_interfaces

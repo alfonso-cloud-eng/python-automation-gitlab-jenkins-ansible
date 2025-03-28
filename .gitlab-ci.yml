@@ -31,31 +31,47 @@ provision_infra:
     # 6. Initialize and apply Terraform to provision the Jenkins VM
     - terraform init
     - terraform apply -auto-approve
-    # 7. Capture the Jenkins VM IP address (assuming Terraform outputs a variable named "jenkins_vm_ip").
     - |
       echo "Access Jenkins on your VM here: http://$(terraform output -raw instance_nat_ip):8080"      
       echo "Jenkins Admin Username: $(terraform output -raw admin_user)"
       echo "Jenkins Admin Password: $(terraform output -raw admin_password)"
+    # 7. Capture the Jenkins VM External IP as an artifact for later stages
+    - terraform output -raw instance_nat_ip > /tmp/jenkins_ip.txt
+    - cat /tmp/jenkins_ip.txt
+  artifacts:
+    paths:
+      - /tmp/jenkins_ip.txt
   only:
     - main
 
 configure_jenkins:
   stage: configure
-  image: google/cloud-sdk:alpine
+  image: python:3.9
   dependencies:
     - provision_infra
   script:
-    # 1. Install required packages: git, pip, bash, and openssh-client.
-    - apk update && apk add --no-cache git py3-pip bash openssh-client
-    # 2. Install Ansible.
-    - pip3 install --break-system-packages ansible
-    # 3. Clone the repository to retrieve your Ansible playbook.
-    - git clone --depth 1 https://github.com/alfonso-cloud-eng/python-automation-gitlab-jenkins-ansible.git
+    # 1. Install needed packages (Git, SSH client, pip)
+    - apt-get update && apt-get install -y git ssh
+    - pip install ansible
+    # 2. Retrieve Jenkins IP from previous job artifact
+    - export JENKINS_IP="$(cat /tmp/jenkins_ip.txt)"
+    - echo "Using JENKINS_IP=$JENKINS_IP"
+    # 3. Retrieve or clone your Ansible playbook
+    - git clone https://github.com/alfonso-cloud-eng/python-automation-gitlab-jenkins-ansible.git
     - cd python-automation-gitlab-jenkins-ansible
-    # 4. Retrieve the Jenkins VM IP from the artifact.
-    - export JENKINS_VM_IP=$(cat ../jenkins_ip.txt)
-    # 5. Run the Ansible playbook against the Jenkins VM.
-    #    Adjust ansible_user or other SSH connection variables as needed.
-    - ansible-playbook -i "$JENKINS_VM_IP," playbook.yml --extra-vars "ansible_become=yes ansible_user=jenkins"
+    # 4. Prepare SSH access
+    #    Option A) If you have a private key in GitLab CI variable:
+    #      - echo "GCLOUD_SERVICE_ACCOUNT_KEY_B64" | base64 -d > ~/.ssh/id_rsa
+    #      - chmod 600 ~/.ssh/id_rsa
+    #    Option B) If your Jenkins VM is using GCP OS Login or a known key, adjust accordingly.
+    #
+    # 5. Run Ansible playbook
+    #    We'll build a one-line inventory that references the IP from the artifact.
+    - |
+      ansible-playbook playbook.yml \
+        -i "${JENKINS_IP}," \
+        --user=jenkins \
+        --ssh-extra-args='-o StrictHostKeyChecking=no' \
+        --private-key=~/.ssh/id_rsa
   only:
     - main

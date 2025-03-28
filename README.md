@@ -2,10 +2,11 @@ GCLOUD_SERVICE_ACCOUNT_KEY_B64
 GCP_PROJECT_ID
 GCP_ZONE
 
-roles/config.agent
-roles/compute.admin
-roles/iam.serviceAccountUser
-os config
+Cloud OS Config Service Agent
+Compute Admin
+Compute OS Admin Login
+Service Account User
+Service Usage Admin
   
 sudo visudo
 jenkins ALL=(ALL) NOPASSWD:ALL
