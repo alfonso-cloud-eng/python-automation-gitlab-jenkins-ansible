@@ -9,6 +9,11 @@ Service Account User
 Service Usage Admin
 
 Install pipeline plugin
+Pipeline
+Pipeline job
 create job
 paste jenkinsfile
-substitute webhook in the file
+substitute webhook in the file (with "")
+Save
+Build now
+Give it a couple of minutes.
