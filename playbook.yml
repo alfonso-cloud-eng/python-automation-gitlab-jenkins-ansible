@@ -20,5 +20,7 @@
         src: set_global_env.groovy.j2
         dest: /tmp/set_global_env.groovy
         mode: '0755'
+    - name: Download Jenkins CLI jar
+      shell: wget http://localhost:8080/jnlpJars/jenkins-cli.jar -O /tmp/jenkins-cli.jar
     - name: Run Groovy script via Jenkins CLI
       shell: java -jar /path/to/jenkins-cli.jar -s http://localhost:8080/ groovy = < /tmp/set_global_env.groovy
