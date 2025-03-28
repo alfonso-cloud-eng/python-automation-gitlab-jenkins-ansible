@@ -1,13 +1,12 @@
 stages:
   - provision
-  - configure
 
-provision_infra:
+provision_and_configure:
   stage: provision
   image: google/cloud-sdk:alpine
   script:
-    # 1. Install required packages: git, curl, unzip, bash, openssh-keygen.
-    - apk update && apk add --no-cache git curl unzip bash openssh
+    # 1. Install required packages: git, curl, unzip, bash, openssh, python3 and pip.
+    - apk update && apk add --no-cache git curl unzip bash openssh python3 py3-pip
     # 2. Install Terraform manually.
     - |
       TERRAFORM_VERSION=1.5.0
@@ -20,9 +19,9 @@ provision_infra:
     - export GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcloud_service_account.json
     - gcloud auth activate-service-account --key-file=/tmp/gcloud_service_account.json
     - gcloud config set project "$GCP_PROJECT_ID"
-    # 4. Generate an SSH key pair for jenkins user.
+    # 4. Generate an SSH key pair for the jenkins user.
     - ssh-keygen -t rsa -b 4096 -f /tmp/id_rsa -N ""
-    # 5. Export TF_VAR variables so Terraform picks them up (including the new SSH public key).
+    # 5. Export TF_VAR variables (including the SSH public key) so Terraform can use them.
     - export TF_VAR_project_id="$GCP_PROJECT_ID"
     - export TF_VAR_zone="$GCP_ZONE"
     - export TF_VAR_ssh_public_key="$(cat /tmp/id_rsa.pub)"
@@ -31,49 +30,22 @@ provision_infra:
     - cd python-automation-gitlab-jenkins-ansible
     - git sparse-checkout set terraform
     - cd terraform
-    # 7. Initialize and apply Terraform to provision the Jenkins VM
+    # 7. Initialize and apply Terraform to provision the Jenkins VM.
     - terraform init
     - terraform apply -auto-approve
-    # 8. Capture the Jenkins VM External IP as an artifact for later stages
-    - terraform output -raw instance_nat_ip > /tmp/jenkins_ip.txt
-    - cat /tmp/jenkins_ip.txt
-    # 9. Print Jenkins login info (optional)
-    - |
-      echo "Access Jenkins on your VM here: http://$(terraform output -raw instance_nat_ip):8080"
-      echo "Jenkins Admin Username: $(terraform output -raw admin_user)"
-      echo "Jenkins Admin Password: $(terraform output -raw admin_password)"
-  artifacts:
-    paths:
-      - /tmp/id_rsa         # Private key artifact
-      - /tmp/jenkins_ip.txt # VM IP for next stage
-    # Optional: You can protect these artifacts or make them expire, if desired.
-  only:
-    - main
-
-configure_jenkins:
-  stage: configure
-  image: python:3.9
-  dependencies:
-    - provision_infra
-  script:
-    # 1. Install needed packages (Git, SSH client, pip).
-    - apt-get update && apt-get install -y git ssh
-    - pip install ansible
-    # 2. Retrieve Jenkins IP from previous job artifact.
-    - export JENKINS_IP="$(cat /tmp/jenkins_ip.txt)"
-    - echo "Using JENKINS_IP=$JENKINS_IP"
-    # 3. Retrieve the private key artifact and set correct permissions.
-    - mv /tmp/id_rsa ~/.ssh/id_rsa
-    - chmod 600 ~/.ssh/id_rsa
-    # 4. Retrieve or clone your Ansible playbook.
-    - git clone https://github.com/alfonso-cloud-eng/python-automation-gitlab-jenkins-ansible.git
-    - cd python-automation-gitlab-jenkins-ansible
-    # 5. Run Ansible with the newly installed SSH key.
+    # 8. Capture the Jenkins VM External IP.
+    - export JENKINS_IP=$(terraform output -raw instance_nat_ip)
+    - echo "Jenkins VM IP: $JENKINS_IP"
+    # 9. Go back to the repository root (where your Ansible playbook is located).
+    - cd ..
+    # 10. Install Ansible using pip.
+    - pip3 install ansible
+    # 11. Run your Ansible playbook using the generated SSH key.
     - |
       ansible-playbook playbook.yml \
         -i "${JENKINS_IP}," \
         --user=jenkins \
-        --private-key=~/.ssh/id_rsa \
+        --private-key=/tmp/id_rsa \
         --ssh-extra-args='-o StrictHostKeyChecking=no'
   only:
     - main
