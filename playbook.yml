@@ -1,12 +1,13 @@
 ---
-- name: Configure Jenkins VM for passwordless sudo
-  hosts: all
-  become: yes
+# Playbook to configure a Jenkins VM for passwordless sudo
+- name: Configure Jenkins VM for passwordless sudo   # Descriptive name of the play
+  hosts: all                                         # Target all hosts in the inventory
+  become: yes                                        # Enable privilege escalation (sudo) for all tasks
   tasks:
-    - name: Add jenkins user to sudoers for passwordless sudo
-      lineinfile:
-        path: /etc/sudoers
-        state: present
-        regexp: '^jenkins '
-        line: 'jenkins ALL=(ALL) NOPASSWD:ALL'
-        validate: '/usr/sbin/visudo -cf %s'
+    - name: Add jenkins user to sudoers for passwordless sudo  # Task to modify the sudoers file for the jenkins user
+      lineinfile:                                    # Use the lineinfile module to manage a single line in a file
+        path: /etc/sudoers                           # Specify the file to be edited
+        state: present                               # Ensure that the line is present in the file
+        regexp: '^jenkins '                          # Look for any line that starts with "jenkins "; if found, it will be replaced
+        line: 'jenkins ALL=(ALL) NOPASSWD:ALL'         # The line to be inserted, granting jenkins passwordless sudo access
+        validate: '/usr/sbin/visudo -cf %s'            # Validate the sudoers file syntax before saving changes using visudo
