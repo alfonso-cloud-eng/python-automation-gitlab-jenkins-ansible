@@ -5,7 +5,7 @@ This project demonstrates how to automate the creation of a Jenkins server on a 
 
 Below is an architectural diagram illustrating the process (place an actual diagram image in your repository if you have one):
 
-INSERT IMAGE HERE
+![Alternative Text](Diagrama gitlab-ansible-jenkins-python.png "Optional Title")
 
 ## How it Works
 GitLab runs a CI/CD pipeline that:
@@ -25,10 +25,7 @@ GitLab runs a CI/CD pipeline that:
    - Go to Slack API and create a new Slack App.
    - In your new Slack App, enable “Incoming Webhooks”.
    - Add a New Webhook to your workspace and specify the channel you created.
-   - Copy the webhook URL, which typically looks like:
-     ```
-     https://hooks.slack.com/services/XXXXXXXXX/XXXXXXXXX/XXXXXXXXXXXXXXXXXX
-     ```
+   - Copy the webhook URL, which typically looks like: `https://hooks.slack.com/services/XXXXXXXXX/XXXXXXXXX/XXXXXXXXXXXXXXXXXX`
    - Keep this URL safe. You will paste it later into your Jenkinsfile or pipeline configuration.
 
 2. **Create a Service Account on GCP**
@@ -73,10 +70,7 @@ GitLab runs a CI/CD pipeline that:
      - The username and password to log into Jenkins.
 
 7. **Log Into Jenkins**
-   - Open a browser and navigate to:
-     ```
-     http://EXTERNAL_IP_OF_THE_VM:8080
-     ```
+   - Open a browser and navigate to: `http://EXTERNAL_IP_OF_THE_VM:8080`
    - Use the username and password from the GitLab job output to access Jenkins.
 
 8. **Install the “Pipeline” Plugin in Jenkins**
@@ -100,7 +94,7 @@ GitLab runs a CI/CD pipeline that:
     - Watch the build progress. The Python app will run inside your Jenkins VM and send stock prices to the specified Slack channel.
     - After a couple of minutes, check your Slack channel to see the stock price messages.
 
-Congratulations! You have replicated the workflow: GitLab → Terraform + Ansible → Jenkins → Python → Slack.
+Congratulations! You have replicated the workflow: `GitLab` → `Terraform` + `Ansible` → `Jenkins` → `Python` → `Slack`.
 
 **Cleanup:** If you no longer need the VM, delete it to avoid unnecessary charges. To do this, navigate to **Compute Engine → VM Instances** in your GCP Console, locate the Jenkins VM, and click **Delete**.
 
