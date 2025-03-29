@@ -5,7 +5,7 @@ This project demonstrates how to automate the creation of a Jenkins server on a 
 
 Below is an architectural diagram illustrating the process:
 
-![Alternative Text](diagrama-gitlab-ansible-jenkins-python.png "Optional Title")
+![Alternative Text](images/diagrama-gitlab-ansible-jenkins-python.png "Optional Title")
 
 ## How it Works
 GitLab runs a CI/CD pipeline that:
