@@ -3,7 +3,7 @@
 ## Overview
 This project demonstrates how to automate the creation of a Jenkins server on a Google Cloud Platform (GCP) virtual machine (VM) using GitLab, Terraform, and Ansible. Once the Jenkins server is up and running, you can use it to execute a Python application that posts automated stock price messages into a Slack channel.
 
-Below is an architectural diagram illustrating the process (place an actual diagram image in your repository if you have one):
+Below is an architectural diagram illustrating the process:
 
 ![Alternative Text](diagrama-gitlab-ansible-jenkins-python.png "Optional Title")
 
@@ -14,7 +14,7 @@ GitLab runs a CI/CD pipeline that:
   - A new VM instance in GCP with a preconfigured Jenkins image (from the GCP Marketplace).
   - A firewall rule allowing external access to Jenkins on port 8080.
 - Uses Ansible to grant jenkins user privileges within the VM for running tasks with sudo.
-- Jenkins is then accessible via http://EXTERNAL_IP_OF_THE_VM:8080.
+- Jenkins is then accessible via `http://EXTERNAL_IP_OF_THE_VM:8080`
 - You log into Jenkins with the provided credentials and create a Pipeline Job using the Jenkinsfile from this repository. This job:
   - Clones a Python application (stocks-slack-py) from GitHub.
   - Executes the Python app, which sends stock price messages to a specified Slack channel via a Slack webhook.
@@ -98,7 +98,7 @@ Congratulations! You have replicated the workflow: `GitLab` → `Terraform` + `A
 
 **Cleanup:** If you no longer need the VM, delete it to avoid unnecessary charges. To do this, navigate to **Compute Engine → VM Instances** in your GCP Console, locate the Jenkins VM, and click **Delete**.
 
-Customization: You can extend this pipeline for other use cases, such as deploying containerized applications, running tests, or more complex automation tasks.
+**Customization:** You can extend this pipeline for other use cases, such as deploying containerized applications, running tests, or more complex automation tasks.
 
 Happy Automating!
 
